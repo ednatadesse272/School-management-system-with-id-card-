@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>MSPCSS - Smart Login | QR Code & Credentials</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://unpkg.com/@zxing/library@0.18.6/umd/index.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .login-container { width: 100%; max-width: 480px; }
+        .login-card {
+            background: white;
+            border-radius: 2rem;
+            padding: 2.5rem;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+            animation: fadeSlideUp 0.5s ease-out;
+        }
+        @keyframes fadeSlideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .logo { text-align: center; margin-bottom: 2rem; }
+        .logo h1 {
+            font-size: 2rem;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .input-group { margin-bottom: 1.2rem; }
+        .input-group label { display: block; margin-bottom: 0.5rem; font-weight: 600; color: #333; }
+        .input-group input {
+            width: 100%;
+            padding: 0.9rem 1rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 1rem;
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+        .input-group input:focus { outline: none; border-color: #667eea; }
+        .login-btn {
+            width: 100%;
+            padding: 0.9rem;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 1rem;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .login-btn:hover { transform: translateY(-2px); }
+        .error-msg {
+            background: #fee;
+            color: #c33;
+            padding: 0.7rem;
+            border-radius: 0.8rem;
+            margin-bottom: 1rem;
+            text-align: center;
+            display: none;
+        }
+        .qr-section { margin-top: 1.5rem; text-align: center; border-top: 1px solid #eee; padding-top: 1.5rem; }
+        .qr-btn {
+            background: linear-gradient(135deg, #2c7da0, #1a4d6b);
+            border: none;
+            padding: 0.8rem 1.5rem;
+            border-radius: 2rem;
+            cursor: pointer;
+            font-weight: 600;
+            color: white;
+            width: 100%;
+            font-size: 1rem;
+        }
+        .qr-btn:hover { opacity: 0.9; transform: scale(0.98); }
+        .demo-info {
+            background: #f8f9fa;
+            padding: 0.8rem;
+            border-radius: 0.8rem;
+            margin-top: 1rem;
+            font-size: 0.7rem;
+            text-align: left;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(8px);
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+        .modal-content {
+            background: white;
+            border-radius: 1.5rem;
+            padding: 1.5rem;
+            width: 90%;
+            max-width: 500px;
+            text-align: center;
+        }
+        .qr-scanner-container {
+            background: #000;
+            border-radius: 1rem;
+            overflow: hidden;
+            margin: 1rem 0;
+            position: relative;
+        }
+        video { width: 100%; height: auto; max-height: 400px; object-fit: cover; }
+        .scan-status { margin: 0.8rem 0; font-size: 0.85rem; color: #666; }
+        .close-btn { background: #e74c3c; color: white; border: none; padding: 0.6rem 1.5rem; border-radius: 2rem; cursor: pointer; margin-top: 0.5rem; }
+        .flex-buttons { display: flex; gap: 0.5rem; justify-content: center; margin-top: 0.5rem; }
+        .btn-secondary { background: #95a5a6; }
+        .demo-badge { background: #e8f0fe; padding: 0.2rem 0.5rem; border-radius: 1rem; font-size: 0.7rem; margin: 0.2rem; display: inline-block; }
+        .password-note { background: #fff3cd; padding: 0.5rem; border-radius: 0.5rem; margin-top: 0.5rem; font-size: 0.7rem; }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-card">
+            <div class="logo">
+                <i class="fas fa-graduation-cap" style="font-size: 3rem; color: #667eea;"></i>
+                <h1>MSPCSS</h1>
+                <p>School Management System</p>
+            </div>
+            <div id="errorMsg" class="error-msg"></div>
+            <div class="input-group">
+                <label><i class="fas fa-user"></i> Username / ID</label>
+                <input type="text" id="username" placeholder="Enter username or ID (S001, T001)" autocomplete="off">
+            </div>
+            <div class="input-group">
+                <label><i class="fas fa-lock"></i> Password</label>
+                <input type="password" id="password" placeholder="Enter password (ID number for new users)">
+            </div>
+            <button class="login-btn" onclick="login()"><i class="fas fa-sign-in-alt"></i> Login</button>
+            
+            <div class="demo-info">
+                <strong><i class="fas fa-info-circle"></i> Demo Credentials:</strong><br>
+                <span class="demo-badge">👑 Admin: admin / admin123</span>
+                <span class="demo-badge">👨‍🏫 Teacher: teacher1 / teacher123</span>
+                <span class="demo-badge">👨‍🎓 Student: student1 / student123</span>
+                <div class="password-note">
+                    <i class="fas fa-key"></i> <strong>Note:</strong> New students/teachers login with <strong>ID as password</strong> (e.g., S001 or T001)
+                </div>
+            </div>
+            
+            <div class="qr-section">
+                <button class="qr-btn" onclick="openQrScanner()"><i class="fas fa-qrcode"></i> Scan QR Code to Login</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- QR Scanner Modal -->
+    <div id="qrModal" class="modal">
+        <div class="modal-content">
+            <h3><i class="fas fa-qrcode"></i> Scan QR Code</h3>
+            <p style="margin: 0.5rem 0; font-size: 0.85rem;">Position student/teacher ID card QR in front of camera</p>
+            <div class="qr-scanner-container">
+                <video id="preview" width="100%" playsinline></video>
+            </div>
+            <p class="scan-status" id="scanStatus">📷 Waiting for QR code...</p>
+            <div class="flex-buttons">
+                <button onclick="closeQrScanner()" class="close-btn btn-secondary"><i class="fas fa-times"></i> Cancel</button>
+                <button onclick="switchToFrontCamera()" style="background:#2c7da0;"><i class="fas fa-sync-alt"></i> Switch Camera</button>
+            </div>
+        </div>
+    </div>
+    
+   
+
+    <script>
+        // -------------------- DATA INITIALIZATION --------------------
+        function initData() {
+            if (!localStorage.getItem('mspcss_students')) {
+                localStorage.setItem('mspcss_students', JSON.stringify([
+                    { id: "S001", fullName: "breakte haylu", grade: "Grade 10", department: "", email: "breakt12@gmail.com", phone: "0920143479", familyPhone: "0987675434", profilePicture: "" },
+                    { id: "S002", fullName: "Meron Abebe", grade: "Grade 11", department: "Natural", email: "meron@school.com", phone: "0911223344", profilePicture: "" }
+                ]));
+            }
+            if (!localStorage.getItem('mspcss_teachers')) {
+                localStorage.setItem('mspcss_teachers', JSON.stringify([
+                    { id: "T001", fullName: "Teacher Teshom Haylu", subject: "Mathematics", gradeAssigned: "Grade 10-12", email: "teshom@mspcss.com", phone: "0912345678", profilePicture: "" }
+                ]));
+            }
+            if (!localStorage.getItem('mspcss_marks')) localStorage.setItem('mspcss_marks', JSON.stringify([]));
+            if (!localStorage.getItem('mspcss_attendance')) localStorage.setItem('mspcss_attendance', JSON.stringify([]));
+        }
+
+        // DYNAMIC USER VALIDATION - reads from localStorage
+        function validateUser(username, password) {
+            // Admin check
+            if (username === 'admin' && password === 'admin123') {
+                return { role: 'admin', name: 'Administrator', id: null };
+            }
+            
+            // Demo teacher account
+            if (username === 'teacher1' && password === 'teacher123') {
+                return { role: 'teacher', name: 'Teacher Teshom Haylu', id: 'T001' };
+            }
+            
+            // Demo student account
+            if (username === 'student1' && password === 'student123') {
+                return { role: 'student', name: 'breakte haylu', id: 'S001' };
+            }
+            
+            // Check teachers from localStorage (password = teacher ID)
+            const teachers = JSON.parse(localStorage.getItem('mspcss_teachers')) || [];
+            const teacher = teachers.find(t => 
+                t.id === username || 
+                t.id === password || 
+                t.fullName.toLowerCase() === username.toLowerCase()
+            );
+            if (teacher && (teacher.id === password || teacher.id === username)) {
+                return { role: 'teacher', name: teacher.fullName, id: teacher.id };
+            }
+            
+            // Check students from localStorage (password = student ID)
+            const students = JSON.parse(localStorage.getItem('mspcss_students')) || [];
+            const student = students.find(s => 
+                s.id === username || 
+                s.id === password || 
+                s.fullName.toLowerCase() === username.toLowerCase()
+            );
+            if (student && (student.id === password || student.id === username)) {
+                return { role: 'student', name: student.fullName, id: student.id };
+            }
+            
+            return null;
+        }
+
+        // QR Scanner variables
+        let codeReader = null;
+        let scanActive = false;
+        let currentCameraIndex = 0;
+        let videoInputDevices = [];
+
+        function showError(msg) {
+            const errorDiv = document.getElementById('errorMsg');
+            errorDiv.textContent = msg;
+            errorDiv.style.display = 'block';
+            setTimeout(() => errorDiv.style.display = 'none', 3000);
+        }
+
+        // Manual login
+        function login() {
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value.trim();
+            
+            if (!username || !password) {
+                showError('Please enter both username and password');
+                return;
+            }
+            
+            const user = validateUser(username, password);
+            
+            if (user) {
+                const userData = {
+                    username: username,
+                    role: user.role,
+                    name: user.name,
+                    id: user.id
+                };
+                localStorage.setItem('currentUser', JSON.stringify(userData));
+                initData();
+                
+                if (user.role === 'admin') window.location.href = 'admin.html';
+                else if (user.role === 'teacher') window.location.href = 'teacher.html';
+                else if (user.role === 'student') window.location.href = 'student.html';
+            } else {
+                showError('Invalid username or password. New users: use your ID as password (e.g., S001)');
+            }
+        }
+
+        // QR Code Login Functions
+        async function openQrScanner() {
+            const modal = document.getElementById('qrModal');
+            modal.style.display = 'flex';
+            document.getElementById('scanStatus').textContent = '📷 Initializing camera...';
+            
+            try {
+                codeReader = new ZXing.BrowserMultiFormatReader();
+                videoInputDevices = await codeReader.listVideoInputDevices();
+                
+                if (videoInputDevices.length === 0) {
+                    document.getElementById('scanStatus').textContent = '❌ No camera found! Please use manual login.';
+                    return;
+                }
+                
+                currentCameraIndex = 0;
+                startScanner(currentCameraIndex);
+            } catch (err) {
+                document.getElementById('scanStatus').textContent = '❌ Camera access denied. Please check permissions.';
+            }
+        }
+
+        function startScanner(deviceIndex) {
+            if (!codeReader || deviceIndex >= videoInputDevices.length) return;
+            
+            const selectedDeviceId = videoInputDevices[deviceIndex].deviceId;
+            scanActive = true;
+            
+            codeReader.decodeFromVideoDevice(selectedDeviceId, 'preview', (result, err) => {
+                if (result && scanActive) {
+                    const qrData = result.text;
+                    document.getElementById('scanStatus').textContent = '✅ QR detected! Processing...';
+                    handleQrLogin(qrData);
+                }
+            }).catch(err => {
+                console.error("Scanner error:", err);
+            });
+        }
+
+        function switchToFrontCamera() {
+            if (videoInputDevices.length > 1) {
+                currentCameraIndex = (currentCameraIndex + 1) % videoInputDevices.length;
+                if (codeReader) {
+                    codeReader.reset();
+                    startScanner(currentCameraIndex);
+                    document.getElementById('scanStatus').textContent = '🔄 Switched camera. Waiting for QR...';
+                }
+            } else {
+                document.getElementById('scanStatus').textContent = '📷 Only one camera available';
+            }
+        }
+
+        function handleQrLogin(qrData) {
+            if (!scanActive) return;
+            
+            if (qrData.startsWith("MSPCSS:STUDENT:")) {
+                const studentId = qrData.replace("MSPCSS:STUDENT:", "");
+                const students = JSON.parse(localStorage.getItem('mspcss_students')) || [];
+                const student = students.find(s => s.id === studentId);
+                
+                if (student) {
+                    const userData = {
+                        username: student.id.toLowerCase(),
+                        role: 'student',
+                        name: student.fullName,
+                        id: student.id
+                    };
+                    localStorage.setItem('currentUser', JSON.stringify(userData));
+                    initData();
+                    closeQrScanner();
+                    window.location.href = 'student.html';
+                } else {
+                    document.getElementById('scanStatus').textContent = `❌ Student ID ${studentId} not found`;
+                    setTimeout(() => { if(scanActive) document.getElementById('scanStatus').textContent = '📷 Waiting for QR code...'; }, 2000);
+                }
+            } 
+            else if (qrData.startsWith("MSPCSS:TEACHER:")) {
+                const teacherId = qrData.replace("MSPCSS:TEACHER:", "");
+                const teachers = JSON.parse(localStorage.getItem('mspcss_teachers')) || [];
+                const teacher = teachers.find(t => t.id === teacherId);
+                
+                if (teacher) {
+                    const userData = {
+                        username: teacher.id.toLowerCase(),
+                        role: 'teacher',
+                        name: teacher.fullName,
+                        id: teacher.id
+                    };
+                    localStorage.setItem('currentUser', JSON.stringify(userData));
+                    initData();
+                    closeQrScanner();
+                    window.location.href = 'teacher.html';
+                } else {
+                    document.getElementById('scanStatus').textContent = `❌ Teacher ID ${teacherId} not found`;
+                    setTimeout(() => { if(scanActive) document.getElementById('scanStatus').textContent = '📷 Waiting for QR code...'; }, 2000);
+                }
+            }
+            else {
+                document.getElementById('scanStatus').textContent = '❌ Invalid QR format';
+                setTimeout(() => { if(scanActive) document.getElementById('scanStatus').textContent = '📷 Waiting for QR code...'; }, 2000);
+            }
+        }
+
+        function closeQrScanner() {
+            scanActive = false;
+            if (codeReader) {
+                try { codeReader.reset(); } catch(e) {}
+                codeReader = null;
+            }
+            const modal = document.getElementById('qrModal');
+            modal.style.display = 'none';
+            const videoElement = document.getElementById('preview');
+            if (videoElement && videoElement.srcObject) {
+                const tracks = videoElement.srcObject.getTracks();
+                tracks.forEach(track => track.stop());
+                videoElement.srcObject = null;
+            }
+        }
+
+        document.getElementById('username').addEventListener('keypress', e => { if (e.key === 'Enter') login(); });
+        document.getElementById('password').addEventListener('keypress', e => { if (e.key === 'Enter') login(); });
+
+        initData();
+    </script>
+     </div>
+</div>
+<div style="position: fixed; bottom: 15px; right: 15px; z-index: 999;">
+    <a href="profile.html" style="background: #667eea; color: white; padding: 0.4rem 1rem; border-radius: 2rem; text-decoration: none; font-size: 0.7rem; display: inline-block; box-shadow: 0 2px 8px rgba(0,0,0,0.2);"><i class="fas fa-heart"></i> Eden & Amanuel</a>
+</div>
+</body>
+</html>

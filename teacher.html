@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MSPCSS | Teacher Portal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: #eef2f7; }
+        .dashboard { display: flex; min-height: 100vh; }
+        .sidebar {
+            width: 280px;
+            background: linear-gradient(180deg, #0f2b3d 0%, #1a3a4f 100%);
+            color: white;
+            padding: 1.8rem;
+            position: fixed;
+            height: 100vh;
+        }
+        .sidebar h2 { margin-bottom: 2rem; font-size: 1.5rem; }
+        .sidebar nav a {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            padding: 0.75rem 1rem;
+            color: #e0edf5;
+            border-radius: 1rem;
+            margin-bottom: 0.5rem;
+            cursor: pointer;
+        }
+        .sidebar nav a:hover { background: rgba(255,255,255,0.15); }
+        .main-content { margin-left: 280px; flex: 1; padding: 1.8rem; }
+        .top-bar {
+            background: white;
+            border-radius: 1rem;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+        .logout-btn { background: #e74c3c; padding: 0.5rem 1rem; border-radius: 2rem; cursor: pointer; color: white; border: none; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px,1fr)); gap: 1rem; margin-bottom: 2rem; }
+        .stat-card { background: white; border-radius: 1rem; padding: 1.2rem; }
+        .stat-number { font-size: 2rem; font-weight: 800; color: #1e4663; }
+        .section-title { font-size: 1.3rem; font-weight: 700; margin: 1.5rem 0 1rem; border-left: 5px solid #2c7da0; padding-left: 1rem; }
+        .profile-header {
+            background: white;
+            border-radius: 1.5rem;
+            padding: 2rem;
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+        .profile-avatar {
+            position: relative;
+            cursor: pointer;
+            display: inline-block;
+        }
+        .profile-avatar img {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 4px solid #2c7da0;
+        }
+        .avatar-overlay {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            background: #2c7da0;
+            border-radius: 50%;
+            padding: 0.5rem;
+            color: white;
+            font-size: 0.8rem;
+        }
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px,1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        .info-item {
+            background: #f8fafc;
+            padding: 1rem;
+            border-radius: 1rem;
+        }
+        .action-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px,1fr)); gap: 1rem; }
+        .action-card {
+            background: white;
+            border-radius: 1rem;
+            padding: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .action-card:hover { transform: translateY(-3px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .action-icon {
+            width: 48px;
+            height: 48px;
+            background: #eef2ff;
+            border-radius: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            color: #2c7da0;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+        .modal-content {
+            background: white;
+            border-radius: 1.5rem;
+            width: 90%;
+            max-width: 500px;
+            padding: 1.5rem;
+        }
+        input, select {
+            width: 100%;
+            padding: 0.7rem;
+            margin: 0.5rem 0;
+            border: 1px solid #ccc;
+            border-radius: 0.5rem;
+        }
+        button {
+            background: #2c7da0;
+            color: white;
+            border: none;
+            padding: 0.6rem 1.2rem;
+            border-radius: 2rem;
+            cursor: pointer;
+        }
+        .btn-success { background: #27ae60; }
+        .btn-danger { background: #e74c3c; }
+        table { width: 100%; background: white; border-radius: 1rem; overflow: hidden; }
+        th, td { padding: 0.8rem; text-align: left; border-bottom: 1px solid #eee; }
+        .qr-placeholder { text-align: center; margin-top: 1rem; }
+        .badge { background: #e8f0fe; padding: 0.2rem 0.6rem; border-radius: 2rem; font-size: 0.7rem; }
+    </style>
+</head>
+<body>
+<div class="dashboard">
+    <div class="sidebar">
+        <h2><i class="fas fa-chalkboard-user"></i> MSPCSS</h2>
+        <nav>
+            <a onclick="showSection('dashboard')"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+            <a onclick="showSection('profile')"><i class="fas fa-id-card"></i> My Profile</a>
+            <a onclick="showSection('students')"><i class="fas fa-users"></i> My Students</a>
+            <a onclick="showSection('marks')"><i class="fas fa-pen-fancy"></i> Marks</a>
+            <a onclick="showSection('attendance')"><i class="fas fa-calendar-check"></i> Attendance</a>
+            <a onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</a>
+        </nav>
+    </div>
+    <div class="main-content">
+        <div class="top-bar">
+            <h3 id="welcomeMsg">Teacher Dashboard</h3>
+            <button class="logout-btn" onclick="logout()">Logout</button>
+        </div>
+        <div id="dynamicContent"></div>
+    </div>
+</div>
+
+<script>
+    // Data
+    let students = JSON.parse(localStorage.getItem('mspcss_students')) || [
+        { id: "S001", fullName: "breakte haylu", grade: "Grade 10", email: "breakt12@gmail.com", phone: "0920143479" },
+        { id: "S002", fullName: "Meron Abebe", grade: "Grade 11", email: "meron@school.com", phone: "0911223344" }
+    ];
+    
+    let teachers = JSON.parse(localStorage.getItem('mspcss_teachers')) || [
+        { id: "T001", fullName: "Teacher Teshom Haylu", subject: "Mathematics", gradeAssigned: "Grade 10-12", email: "teshom@mspcss.com", phone: "0912345678", profilePicture: "" }
+    ];
+    
+    let marks = JSON.parse(localStorage.getItem('mspcss_marks')) || [];
+    let attendance = JSON.parse(localStorage.getItem('mspcss_attendance')) || [];
+    
+    let currentTeacher = null;
+
+    function persistAll() {
+        localStorage.setItem('mspcss_students', JSON.stringify(students));
+        localStorage.setItem('mspcss_teachers', JSON.stringify(teachers));
+        localStorage.setItem('mspcss_marks', JSON.stringify(marks));
+        localStorage.setItem('mspcss_attendance', JSON.stringify(attendance));
+    }
+
+    function checkAuth() {
+        const user = JSON.parse(localStorage.getItem('currentUser'));
+        if (!user || user.role !== 'teacher') {
+            window.location.href = 'index.html';
+            return false;
+        }
+        currentTeacher = teachers.find(t => t.id === user.id) || teachers[0];
+        document.getElementById('welcomeMsg').innerHTML = `Welcome, ${currentTeacher.fullName}`;
+        return true;
+    }
+        // QR DOWNLOAD FUNCTION
+    function downloadTeacherQR() {
+        if(!currentTeacher) return;
+        const tempDiv = document.createElement('div');
+        tempDiv.style.position = 'absolute';
+        tempDiv.style.left = '-9999px';
+        document.body.appendChild(tempDiv);
+        new QRCode(tempDiv, { text: `MSPCSS:TEACHER:${currentTeacher.id}`, width: 300, height: 300 });
+        setTimeout(() => {
+            const canvas = tempDiv.querySelector('canvas');
+            if (canvas) {
+                const link = document.createElement('a');
+                link.download = `teacher_${currentTeacher.id}_QR.png`;
+                link.href = canvas.toDataURL();
+                link.click();
+            }
+            document.body.removeChild(tempDiv);
+        }, 200);
+    }
+
+    // PROFILE SECTION - THIS IS THE FIXED ONE
+    function showProfile(container) {
+        container.innerHTML = `
+            <div class="section-title"><i class="fas fa-id-card"></i> My Profile</div>
+            <div class="profile-header">
+                <div class="profile-avatar" onclick="updateProfilePicture()">
+                    ${currentTeacher.profilePicture ? `<img src="${currentTeacher.profilePicture}">` : `<img src="https://ui-avatars.com/api/?background=2c7da0&color=fff&size=120&name=${currentTeacher.fullName}">`}
+                    <div class="avatar-overlay"><i class="fas fa-camera"></i></div>
+                </div>
+                <h2>${currentTeacher.fullName}</h2>
+                <p><i class="fas fa-envelope"></i> ${currentTeacher.email} | <i class="fas fa-phone"></i> ${currentTeacher.phone || 'Not provided'}</p>
+                <button onclick="downloadTeacherQR()" class="btn-success"><i class="fas fa-qrcode"></i> Download QR Code</button>
+            </div>
+            <div class="info-grid">
+                <div class="info-item"><strong>Teacher ID</strong><br>${currentTeacher.id}</div>
+                <div class="info-item"><strong>Subject</strong><br>${currentTeacher.subject}</div>
+                <div class="info-item"><strong>Grades Taught</strong><br>${currentTeacher.gradeAssigned}</div>
+                <div class="info-item"><strong>Email</strong><br>${currentTeacher.email}</div>
+                <div class="info-item"><strong>Phone</strong><br>${currentTeacher.phone || 'Not provided'}</div>
+            </div>
+            <div class="qr-placeholder" id="teacherQRContainer" style="margin-top: 1.5rem;"></div>
+        `;
+        
+        // Generate QR code in the container
+        const qrContainer = document.getElementById('teacherQRContainer');
+        if(qrContainer) {
+            qrContainer.innerHTML = '<p><i class="fas fa-qrcode"></i> Your QR Code (scan to login)</p>';
+            new QRCode(qrContainer, { text: `MSPCSS:TEACHER:${currentTeacher.id}`, width: 180, height: 180 });
+        }
+    }
+
+    function updateProfilePicture() {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.onchange = (e) => {
+            const file = e.target.files[0];
+            if(file) {
+                const reader = new FileReader();
+                reader.onload = function(ev) {
+                    currentTeacher.profilePicture = ev.target.result;
+                    teachers = teachers.map(t => t.id === currentTeacher.id ? currentTeacher : t);
+                    persistAll();
+                    showSection('profile');
+                    alert("Profile picture updated!");
+                };
+                reader.readAsDataURL(file);
+            }
+        };
+        input.click();
+    }
+
+    // DASHBOARD
+    function showDashboard(container) {
+        const myMarks = marks.filter(m => m.teacherId === currentTeacher.id);
+        const myAttendance = attendance.filter(a => a.teacherId === currentTeacher.id);
+        container.innerHTML = `
+            <div class="profile-header">
+                <div class="profile-avatar">
+                    ${currentTeacher.profilePicture ? `<img src="${currentTeacher.profilePicture}">` : `<img src="https://ui-avatars.com/api/?background=2c7da0&color=fff&size=120&name=${currentTeacher.fullName}">`}
+                </div>
+                <div><h2>${currentTeacher.fullName}</h2><p><i class="fas fa-book"></i> ${currentTeacher.subject} | ${currentTeacher.gradeAssigned}</p></div>
+            </div>
+            <div class="stats-grid">
+                <div class="stat-card"><h3>My Students</h3><div class="stat-number">${students.length}</div></div>
+                <div class="stat-card"><h3>Marks Entered</h3><div class="stat-number">${myMarks.length}</div></div>
+                <div class="stat-card"><h3>Attendance</h3><div class="stat-number">${myAttendance.length}</div></div>
+            </div>
+            <div class="section-title">Quick Actions</div>
+            <div class="action-grid">
+                <div class="action-card" onclick="showSection('marks')"><div class="action-icon"><i class="fas fa-pen-fancy"></i></div><div><strong>Add Marks</strong><br>Record student grades</div></div>
+                <div class="action-card" onclick="showSection('attendance')"><div class="action-icon"><i class="fas fa-calendar-check"></i></div><div><strong>Take Attendance</strong><br>Mark presence</div></div>
+                <div class="action-card" onclick="showSection('students')"><div class="action-icon"><i class="fas fa-users"></i></div><div><strong>View Students</strong><br>List & profiles</div></div>
+            </div>
+        `;
+    }
+
+    // MY STUDENTS
+    function showMyStudents(container) {
+        container.innerHTML = `
+            <div class="section-title">My Students</div>
+            <div style="overflow-x:auto"><table><thead><tr><th>ID</th><th>Name</th><th>Grade</th><th>Email</th><th>Phone</th></tr></thead><tbody id="studentList"></tbody></table></div>
+        `;
+        const tbody = document.getElementById('studentList');
+        if(tbody) tbody.innerHTML = students.map(s => `<tr><td>${s.id}</td><td>${s.fullName}</td><td>${s.grade}</td><td>${s.email}</td><td>${s.phone}</td></tr>`).join('');
+    }
+
+    // MARKS MANAGEMENT
+    function showMarksManagement(container) {
+        container.innerHTML = `
+            <div class="section-title">Marks Management</div>
+            <button onclick="openAddMarkModal()">+ Add Marks</button>
+            <div style="overflow-x:auto; margin-top:1rem"><table><thead><tr><th>Student</th><th>Subject</th><th>Exam</th><th>Marks</th><th>Date</th><th>Actions</th></tr></thead><tbody id="marksList"></tbody></table></div>
+        `;
+        refreshMarksTable();
+    }
+
+    function refreshMarksTable() {
+        const tbody = document.getElementById('marksList');
+        if(!tbody) return;
+        const teacherMarks = marks.filter(m => m.teacherId === currentTeacher.id);
+        tbody.innerHTML = teacherMarks.map((m, idx) => {
+            const student = students.find(s => s.id === m.studentId);
+            return `<tr><td>${student?.fullName || m.studentId}</td><td>${m.subject}</td><td>${m.examType}</td><td>${m.marks}/${m.maxMarks}</td><td>${m.date}</td><td><button class="btn-danger" onclick="deleteMark(${idx})">Delete</button></td></tr>`;
+        }).join('');
+    }
+
+    window.openAddMarkModal = () => {
+        const modal = document.createElement('div'); modal.className = 'modal';
+        modal.innerHTML = `<div class="modal-content"><h3>Add Marks</h3>
+            <select id="markStudent">${students.map(s => `<option value="${s.id}">${s.fullName}</option>`)}</select>
+            <input id="markSubject" placeholder="Subject" value="Mathematics">
+            <select id="examType"><option>Quiz</option><option>Midterm</option><option>Final</option></select>
+            <input type="number" id="marksObtained" placeholder="Marks">
+            <input type="number" id="maxMarks" placeholder="Max Marks" value="100">
+            <input type="date" id="markDate" value="${new Date().toISOString().slice(0,10)}">
+            <button onclick="saveMark()">Save</button> <button onclick="this.closest('.modal').remove()">Cancel</button>
+        </div>`;
+        document.body.appendChild(modal); modal.style.display = 'flex';
+        
+        window.saveMark = () => {
+            marks.push({
+                id: Date.now(),
+                studentId: modal.querySelector('#markStudent').value,
+                subject: modal.querySelector('#markSubject').value,
+                examType: modal.querySelector('#examType').value,
+                marks: parseInt(modal.querySelector('#marksObtained').value),
+                maxMarks: parseInt(modal.querySelector('#maxMarks').value),
+                date: modal.querySelector('#markDate').value,
+                teacherId: currentTeacher.id
+            });
+            persistAll();
+            modal.remove();
+            refreshMarksTable();
+            alert("Marks saved!");
+        };
+    };
+
+    window.deleteMark = (index) => {
+        if(confirm("Delete?")) {
+            const teacherMarks = marks.filter(m => m.teacherId === currentTeacher.id);
+            const mark = teacherMarks[index];
+            const originalIndex = marks.findIndex(m => m.id === mark.id);
+            marks.splice(originalIndex, 1);
+            persistAll();
+            refreshMarksTable();
+        }
+    };
+
+    // ATTENDANCE
+    function showAttendanceManagement(container) {
+        container.innerHTML = `
+            <div class="section-title">Attendance Management</div>
+            <button onclick="openTakeAttendanceModal()">+ Take Attendance</button>
+            <div style="overflow-x:auto; margin-top:1rem"><table><thead><tr><th>Student</th><th>Subject</th><th>Date</th><th>Status</th></tr></thead><tbody id="attendanceList"></tbody></table></div>
+        `;
+        refreshAttendanceTable();
+    }
+
+    function refreshAttendanceTable() {
+        const tbody = document.getElementById('attendanceList');
+        if(!tbody) return;
+        const teacherAttendance = attendance.filter(a => a.teacherId === currentTeacher.id);
+        tbody.innerHTML = teacherAttendance.map(a => {
+            const student = students.find(s => s.id === a.studentId);
+            return `<tr><td>${student?.fullName || a.studentId}</td><td>${a.subject}</td><td>${a.date}</td><td><span class="badge">${a.status}</span></td></tr>`;
+        }).join('');
+    }
+
+    window.openTakeAttendanceModal = () => {
+        const modal = document.createElement('div'); modal.className = 'modal';
+        modal.innerHTML = `<div class="modal-content"><h3>Take Attendance</h3>
+            <input id="attSubject" placeholder="Subject" value="Mathematics">
+            <input type="date" id="attDate" value="${new Date().toISOString().slice(0,10)}">
+            <div id="studentAttendanceList"></div>
+            <button onclick="saveAttendance()">Save All</button> <button onclick="this.closest('.modal').remove()">Cancel</button>
+        </div>`;
+        document.body.appendChild(modal); modal.style.display = 'flex';
+        
+        const studentListDiv = modal.querySelector('#studentAttendanceList');
+        studentListDiv.innerHTML = students.map(s => `<div><strong>${s.fullName}</strong> <select data-student="${s.id}" class="attStatus"><option>Present</option><option>Absent</option><option>Late</option></select></div>`).join('');
+        
+        window.saveAttendance = () => {
+            const subject = modal.querySelector('#attSubject').value;
+            const date = modal.querySelector('#attDate').value;
+            const selects = modal.querySelectorAll('.attStatus');
+            selects.forEach(select => {
+                attendance.push({
+                    id: Date.now() + Math.random(),
+                    studentId: select.dataset.student,
+                    subject: subject,
+                    date: date,
+                    status: select.value,
+                    teacherId: currentTeacher.id
+                });
+            });
+            persistAll();
+            modal.remove();
+            refreshAttendanceTable();
+            alert("Attendance saved!");
+        };
+    };
+
+    // SECTION CONTROLLER
+    function showSection(section) {
+        const container = document.getElementById('dynamicContent');
+        if (section === 'dashboard') showDashboard(container);
+        else if (section === 'profile') showProfile(container);
+        else if (section === 'students') showMyStudents(container);
+        else if (section === 'marks') showMarksManagement(container);
+        else if (section === 'attendance') showAttendanceManagement(container);
+    }
+
+    function logout() {
+        localStorage.removeItem('currentUser');
+        window.location.href = 'index.html';
+    }
+
+    if(checkAuth()) {
+        showSection('dashboard');
+    }
+</script>
+    </div>
+</div>
+<div style="position: fixed; bottom: 15px; right: 15px; z-index: 999;">
+    <a href="profile.html" style="background: #f39c12; color: white; padding: 0.4rem 1rem; border-radius: 2rem; text-decoration: none; font-size: 0.7rem; display: inline-block; box-shadow: 0 2px 8px rgba(0,0,0,0.2);"><i class="fas fa-id-card"></i> Eden & Amanuel</a>
+</div>
+</body>
+</html>
